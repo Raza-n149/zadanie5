@@ -2,10 +2,9 @@
 session_start();
 header('Content-Type: text/html; charset=UTF-8');
 
-// Подключение к БД
 $db_host = 'localhost';
 $db_user = 'u82260';
-$db_pass = '3052562';  // ЗАМЕНИТЕ!
+$db_pass = '3052562'; 
 $db_name = 'u82260';
 
 try {
@@ -15,7 +14,6 @@ try {
     die("Ошибка БД: " . $e->getMessage());
 }
 
-// Конфигурация полей (как в Задании 4)
 $fields = [
     'fio' => [
         'required' => true,
@@ -64,21 +62,26 @@ $fields = [
 
 $allowed_languages = ['Pascal', 'C', 'C++', 'JavaScript', 'PHP', 'Python', 'Java', 'Haskell', 'Clojure', 'Prolog', 'Scala', 'Go'];
 
-// Функция генерации логина
 function generateLogin($fio, $id) {
-    $parts = explode(' ', trim($fio));
+    $parts = preg_split('/[\s]+/', trim($fio));
     $lastname = $parts[0] ?? 'user';
-    $login = strtolower(transliterator_transliterate('Any-Latin; Latin-ASCII;', $lastname)) . $id;
-    return $login;
+    
+    $cyrillic = array('а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п','р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я',
+                      'А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я');
+    $latin = array('a','b','v','g','d','e','e','zh','z','i','y','k','l','m','n','o','p','r','s','t','u','f','kh','ts','ch','sh','shch','','y','','e','yu','ya',
+                   'A','B','V','G','D','E','E','Zh','Z','I','Y','K','L','M','N','O','P','R','S','T','U','F','Kh','Ts','Ch','Sh','Shch','','Y','','E','Yu','Ya');
+    
+    $lastname = str_replace($cyrillic, $latin, $lastname);
+    $lastname = preg_replace('/[^a-zA-Z0-9]/', '', $lastname);
+    
+    return strtolower($lastname) . $id;
 }
 
-// Функция генерации пароля
 function generatePassword($length = 10) {
     $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
     return substr(str_shuffle($chars), 0, $length);
 }
 
-// Обработка POST-запроса (сохранение/обновление)
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
     
     $has_errors = false;
@@ -86,8 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
     $is_update = isset($_SESSION['user_id']) && isset($_POST['application_id']);
     $app_id = $is_update ? intval($_POST['application_id']) : null;
     
-    // Валидация (как в Задании 4)
-    // ФИО
     $fio = trim($_POST['fio'] ?? '');
     if (empty($fio)) {
         setcookie('fio_error', '1', 0, '/');
@@ -99,7 +100,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
         $form_data['fio'] = $fio;
     }
     
-    // Email
     $email = trim($_POST['email'] ?? '');
     if (empty($email)) {
         setcookie('email_error', '1', 0, '/');
@@ -111,7 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
         $form_data['email'] = $email;
     }
     
-    // Телефон
     $phone = trim($_POST['phone'] ?? '');
     if (empty($phone)) {
         setcookie('phone_error', '1', 0, '/');
@@ -123,7 +122,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
         $form_data['phone'] = $phone;
     }
     
-    // Дата рождения
     $birthdate = trim($_POST['birthdate'] ?? '');
     if (empty($birthdate)) {
         setcookie('birthdate_error', '1', 0, '/');
@@ -135,7 +133,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
         $form_data['birthdate'] = $birthdate;
     }
     
-    // Пол
     $gender = $_POST['gender'] ?? '';
     if (!in_array($gender, ['male', 'female'])) {
         setcookie('gender_error', '1', 0, '/');
@@ -144,7 +141,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
         $form_data['gender'] = $gender;
     }
     
-    // Языки
     $selected_languages = $_POST['languages'] ?? [];
     if (empty($selected_languages)) {
         setcookie('languages_error', '1', 0, '/');
@@ -165,11 +161,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
         }
     }
     
-    // Биография
     $biography = trim($_POST['biography'] ?? '');
     $form_data['biography'] = $biography;
     
-    // Чекбокс
     $contract_accepted = isset($_POST['contract_accepted']) && $_POST['contract_accepted'] == '1';
     if (!$contract_accepted) {
         setcookie('contract_accepted_error', '1', 0, '/');
@@ -177,7 +171,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
     }
     $form_data['contract_accepted'] = $contract_accepted ? 1 : 0;
     
-    // Сохраняем значения в cookies (для неавторизованных - Задание 4)
     foreach ($form_data as $key => $val) {
         if ($key != 'languages') {
             setcookie($key . '_value', $val, time() + 30 * 24 * 60 * 60, '/');
@@ -190,7 +183,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
         exit();
     }
     
-    // Сохранение в БД
     try {
         $pdo->beginTransaction();
         
@@ -198,7 +190,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
         $birthdate_sql = $birthdate_obj ? $birthdate_obj->format('Y-m-d') : null;
         
         if ($is_update && $app_id) {
-            // Обновление существующей заявки
             $stmt = $pdo->prepare("
                 UPDATE applications SET 
                     full_name = :fio, phone = :phone, email = :email, 
@@ -217,13 +208,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
                 ':id' => $app_id
             ]);
             
-            // Удаляем старые языки
             $pdo->prepare("DELETE FROM application_languages WHERE application_id = ?")->execute([$app_id]);
             $application_id = $app_id;
             $success_message = "Данные успешно обновлены!";
             
         } else {
-            // Новая заявка
             $stmt = $pdo->prepare("
                 INSERT INTO applications (full_name, phone, email, birth_date, gender, biography, contract_accepted) 
                 VALUES (:fio, :phone, :email, :birthdate, :gender, :biography, :contract_accepted)
@@ -239,22 +228,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
             ]);
             $application_id = $pdo->lastInsertId();
             
-            // Генерация логина и пароля
             $login = generateLogin($form_data['fio'], $application_id);
             $password = generatePassword();
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
             
-            // Сохраняем пользователя
             $stmt = $pdo->prepare("INSERT INTO users (login, password_hash, application_id) VALUES (:login, :hash, :app_id)");
             $stmt->execute([':login' => $login, ':hash' => $password_hash, ':app_id' => $application_id]);
+            $user_id = $pdo->lastInsertId();
             
-            // Обновляем заявку ссылкой на пользователя
-            $pdo->prepare("UPDATE applications SET user_id = :user_id WHERE id = :id")->execute([':user_id' => $pdo->lastInsertId(), ':id' => $application_id]);
+            $pdo->prepare("UPDATE applications SET user_id = :user_id WHERE id = :id")->execute([':user_id' => $user_id, ':id' => $application_id]);
             
             $success_message = "Данные сохранены!<br>Ваш логин: <strong>$login</strong><br>Пароль: <strong>$password</strong><br><span style='color:red;'>Сохраните эти данные! Они показываются только один раз.</span>";
         }
         
-        // Сохраняем языки
         $stmt_lang = $pdo->prepare("INSERT INTO application_languages (application_id, language_id) VALUES (:app_id, :lang_id)");
         $lang_map = [];
         $stmt_l = $pdo->query("SELECT id, name FROM programming_languages");
@@ -269,7 +255,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
         
         $pdo->commit();
         
-        // Сохраняем успешные значения в cookies на год (Задание 4)
         foreach ($form_data as $key => $val) {
             if ($key != 'languages') {
                 setcookie($key . '_value', $val, time() + 365 * 24 * 60 * 60, '/');
@@ -290,7 +275,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['login_action'])) {
     }
 }
 
-// Обработка входа
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_action'])) {
     $login = trim($_POST['login'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -313,14 +297,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login_action'])) {
     }
 }
 
-// Выход
 if (isset($_GET['logout'])) {
     session_destroy();
     header('Location: index.php');
     exit();
 }
 
-// GET-запрос - показ формы
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     
     $messages = [];
@@ -330,19 +312,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $show_edit_form = false;
     $user_data = null;
     
-    // Сообщение после сохранения
     if (isset($_SESSION['temp_message'])) {
         $messages[] = '<div class="message success">' . $_SESSION['temp_message'] . '</div>';
         unset($_SESSION['temp_message']);
     }
     
-    // Ошибка входа
     if (isset($_SESSION['login_error'])) {
         $messages[] = '<div class="message error">' . $_SESSION['login_error'] . '</div>';
         unset($_SESSION['login_error']);
     }
     
-    // Если пользователь авторизован
     if (isset($_SESSION['user_id'])) {
         $show_edit_form = true;
         $stmt = $pdo->prepare("
@@ -373,7 +352,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
         unset($_SESSION['just_logged_in']);
         $show_login_form = true;
     } else {
-        // Неавторизованный режим - Задание 4 (cookies)
         if (isset($_COOKIE['save_success']) && $_COOKIE['save_success'] == '1') {
             setcookie('save_success', '', time() - 3600, '/');
             $messages[] = '<div class="message success">Форма успешно отправлена! Данные сохранены на год.</div>';
@@ -393,7 +371,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
         $values['languages'] = isset($values['languages']) && !empty($values['languages']) ? explode(',', $values['languages']) : [];
     }
     
-    // Данные для входа
     if (isset($_GET['edit'])) {
         $show_login_form = true;
     }
