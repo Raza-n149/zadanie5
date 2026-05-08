@@ -2,9 +2,9 @@
 // db.php - подключение к БД и функции
 
 $host = 'localhost';
-$dbname = 'your_database'; // замените на вашу БД
-$username = 'your_user';     // замените на вашего пользователя
-$password = 'your_password'; // замените на ваш пароль
+$dbname = 'u82260'; // замените на вашу БД
+$username = 'u82260';     // замените на вашего пользователя
+$password = '3052562'; // замените на ваш пароль
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
